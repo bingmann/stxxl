@@ -1209,6 +1209,28 @@ public:
         resize(old_size + 1);
         element(old_size) = obj;
     }
+
+    //! Append a new element at the end by move assignment.
+    void push_back(value_type&& value)
+    {
+        size_type old_size = m_size;
+        resize(old_size + 1);
+        element(old_size) = std::forward<value_type>(value);
+    }
+
+    //! Append a new element at end that is constructed using the specified arguments.
+    //!
+    //! \note This is not more efficient than a simple push_back() in
+    //! most cases as the element is still first constructed and then
+    //! assigned (which is a copy for POD types).
+    template <class... Args>
+    void emplace_back(Args&&... args)
+    {
+        size_type old_size = m_size;
+        resize(old_size + 1);
+        element(old_size) = value_type(std::forward<Args>(args)...);
+    }
+
     //! Removes the last element (without returning it, see back()).
     void pop_back()
     {
@@ -1318,6 +1340,11 @@ public:
         std::copy(inbegin, inend, begin());
     }
 
+    //! move-constructor
+    vector(vector&& o) noexcept : vector() {
+        swap(o);
+    }
+
     //! \}
 
     //! \name Operators
@@ -1329,6 +1356,17 @@ public:
         if (&obj != this)
         {
             vector tmp(obj);
+            this->swap(tmp);
+        }
+        return *this;
+    }
+
+    //! move assignment operator
+    vector& operator = (vector&& obj) noexcept
+    {
+        if (&obj != this)
+        {
+            vector tmp(std::forward<vector>(obj));
             this->swap(tmp);
         }
         return *this;

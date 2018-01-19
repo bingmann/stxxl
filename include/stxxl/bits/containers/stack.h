@@ -167,6 +167,22 @@ public:
     //! non-copyable: delete assignment operator
     normal_stack& operator = (const normal_stack&) = delete;
 
+    //! move-constructor
+    normal_stack(normal_stack&& o) noexcept : normal_stack() {
+        swap(o);
+    }
+
+    //! move assignment operator
+    normal_stack& operator = (normal_stack&& obj) noexcept
+    {
+        if (&obj != this)
+        {
+            normal_stack tmp(std::forward<normal_stack>(obj));
+            this->swap(tmp);
+        }
+        return *this;
+    }
+
     virtual ~normal_stack()
     {
         foxxll::block_manager::get_instance()->delete_blocks(bids.begin(), bids.end());
@@ -214,6 +230,30 @@ public:
     //! incremented by 1, and top() is the inserted element.
     void push(const value_type& val)
     {
+        push_impl(val);
+    }
+
+    //! Inserts an element at the top of the stack. Postconditions: size() is
+    //! incremented by 1, and top() is the inserted element.
+    void push(value_type&& val)
+    {
+        push_impl(std::forward<value_type>(val));
+    }
+
+    //! Constructs and inserts an element at the top of the stack. Postconditions: size() is
+    //! incremented by 1, and top() is the inserted element.
+    template <class... Args>
+    void emplace(Args&&... args)
+    {
+        push_impl(value_type(std::forward<Args>(args)...));
+    }
+
+private:
+    //! Inserts an element at the top of the stack. Postconditions: size() is
+    //! incremented by 1, and top() is the inserted element.
+    template <typename T>
+    void push_impl(T&& val)
+    {
         assert(cache_offset <= 2 * blocks_per_page * block_type::size);
         //assert(cache_offset >= 0);
 
@@ -242,17 +282,18 @@ public:
 
             wait_all(requests.begin(), blocks_per_page);
 
-            *current_element = val;
+            *current_element = std::forward<T>(val);
 
             return;
         }
 
         current_element = element(cache_offset);
-        *current_element = val;
+        *current_element = std::forward<T>(val);
         ++m_size;
         ++cache_offset;
     }
 
+public:
     //! Removes the element at the top of the stack. Precondition: stack is not
     //! empty(). Postcondition: size() is decremented.
     void pop()
@@ -421,6 +462,22 @@ public:
     //! non-copyable: delete assignment operator
     grow_shrink_stack& operator = (const grow_shrink_stack&) = delete;
 
+    //! move-constructor
+    grow_shrink_stack(grow_shrink_stack&& o) noexcept : grow_shrink_stack() {
+        swap(o);
+    }
+
+    //! move assignment operator
+    grow_shrink_stack& operator = (grow_shrink_stack&& obj) noexcept
+    {
+        if (&obj != this)
+        {
+            grow_shrink_stack tmp(std::forward<grow_shrink_stack>(obj));
+            this->swap(tmp);
+        }
+        return *this;
+    }
+
     virtual ~grow_shrink_stack()
     {
         try
@@ -470,9 +527,33 @@ public:
         return (*current_element);
     }
 
+    //! Constructs and inserts an element at the top of the stack. Postconditions: size() is
+    //! incremented by 1, and top() is the inserted element.
+    template <class... Args>
+    void emplace(Args&&... args)
+    {
+        push_impl(value_type(std::forward<Args>(args)...));
+    }
+
     //! Inserts an element at the top of the stack. Postconditions: size() is
     //! incremented by 1, and top() is the inserted element.
     void push(const value_type& val)
+    {
+        push_impl(val);
+    }
+
+    //! Inserts an element at the top of the stack. Postconditions: size() is
+    //! incremented by 1, and top() is the inserted element.
+    void push(value_type&& val)
+    {
+        push_impl(std::forward<value_type>(val));
+    }
+
+private:
+    //! Inserts an element at the top of the stack. Postconditions: size() is
+    //! incremented by 1, and top() is the inserted element.
+    template <typename V>
+    void push_impl(V&& val)
     {
         assert(cache_offset <= blocks_per_page * block_type::size);
         //assert(cache_offset >= 0);
@@ -501,17 +582,18 @@ public:
             current_element = &((*cache_buffers)[0]);
             ++m_size;
 
-            *current_element = val;
+            *current_element = std::forward<V>(val);
 
             return;
         }
 
         current_element = &((*(cache_buffers + cache_offset / block_type::size))[cache_offset % block_type::size]);
-        *current_element = val;
+        *current_element = std::forward<V>(val);
         ++m_size;
         ++cache_offset;
     }
 
+public:
     //! Removes the element at the top of the stack. Precondition: stack is not
     //! empty(). Postcondition: size() is decremented.
     void pop()
@@ -718,6 +800,31 @@ public:
     //! incremented by 1, and top() is the inserted element.
     void push(const value_type& val)
     {
+        push_impl(val);
+    }
+
+    //! Inserts an element at the top of the stack. Postconditions: size() is
+    //! incremented by 1, and top() is the inserted element.
+    void push(value_type&& val)
+    {
+        push_impl(std::forward<value_type>(val));
+    }
+
+    //! Constructs and inserts an element at the top of the stack. Postconditions: size() is
+    //! incremented by 1, and top() is the inserted element.
+    template <class... Args>
+    void emplace(Args&&... args)
+    {
+        push_impl(value_type(std::forward<Args>(args)...));
+    }
+
+private:
+
+    //! Inserts an element at the top of the stack. Postconditions: size() is
+    //! incremented by 1, and top() is the inserted element.
+    template <typename V>
+    void push_impl(V&& val)
+    {
         LOG << "grow_shrink_stack2::push(" << val << ")";
         assert(cache_offset <= block_type::size);
 
@@ -741,7 +848,7 @@ public:
             }
             cache_offset = 0;
         }
-        (*cache)[cache_offset] = val;
+        (*cache)[cache_offset] = std::forward<V>(val);
         ++m_size;
         ++cache_offset;
 
@@ -749,6 +856,7 @@ public:
         assert(cache_offset <= block_type::size);
     }
 
+public:
     //! Return mutable reference to the element at the top of the
     //! stack. Precondition: stack is not empty().
     value_type & top()
@@ -885,6 +993,23 @@ public:
     //! non-copyable: delete assignment operator
     migrating_stack& operator = (const migrating_stack&) = delete;
 
+    //! move-constructor
+    migrating_stack(migrating_stack&& o) noexcept : migrating_stack() {
+        swap(o);
+    }
+
+    //! move assignment operator
+    migrating_stack& operator = (migrating_stack&& obj) noexcept
+    {
+        if (&obj != this)
+        {
+            migrating_stack tmp(std::forward<migrating_stack>(obj));
+            this->swap(tmp);
+        }
+        return *this;
+    }
+
+
     virtual ~migrating_stack()
     {
         delete int_impl;
@@ -963,11 +1088,35 @@ public:
     //! incremented by 1, and top() is the inserted element.
     void push(const value_type& val)
     {
+        push_impl(val);
+    }
+
+    //! Inserts an element at the top of the stack. Postconditions: size() is
+    //! incremented by 1, and top() is the inserted element.
+    void push(value_type&& val)
+    {
+        push_impl(std::forward<value_type>(val));
+    }
+
+    //! Constructs and inserts an element at the top of the stack. Postconditions: size() is
+    //! incremented by 1, and top() is the inserted element.
+    template <class... Args>
+    void emplace(Args&&... args)
+    {
+        push_impl(value_type(std::forward<Args>(args)...));
+    }
+
+private:
+    //! Inserts an element at the top of the stack. Postconditions: size() is
+    //! incremented by 1, and top() is the inserted element.
+    template <typename V>
+    void push_impl(V&& val)
+    {
         assert((int_impl && !ext_impl) || (!int_impl && ext_impl));
 
         if (int_impl)
         {
-            int_impl->push(val);
+            int_impl->push(std::forward<V>(val));
             if (TLX_UNLIKELY(int_impl->size() == critical_size))
             {
                 // migrate to external stack
@@ -977,9 +1126,10 @@ public:
             }
         }
         else
-            ext_impl->push(val);
+            ext_impl->push(std::forward<V>(val));
     }
 
+public:
     //! Removes the element at the top of the stack. Precondition: stack is not
     //! empty(). Postcondition: size() is decremented.
     void pop()

@@ -220,7 +220,25 @@ public:
     //! \{
 
     //! Adds an element in the queue.
-    void push(const value_type& val)
+    void push(const value_type& val) {
+        push_impl(val);
+    }
+
+    //! Adds an element in the queue.
+    void push(value_type&& val) {
+        push_impl(std::forward<value_type>(val));
+    }
+
+    //! Constructs and adds an element in the queue.
+    template <class... Args>
+    void emplace(Args&&... args) {
+        push_impl(value_type(std::forward<Args>(args)...));
+    }
+
+private:
+    //! Adds an element in the queue. Generic implementation for all value types.
+    template <typename V>
+    void push_impl(V&& val)
     {
         if (TLX_UNLIKELY(back_element == back_block->begin() + (block_type::size - 1)))
         {
@@ -244,7 +262,7 @@ public:
                 back_element -= gap;
 
                 ++back_element;
-                *back_element = val;
+                *back_element = std::forward<V>(val);
                 ++m_size;
                 return;
             }
@@ -268,14 +286,15 @@ public:
             back_block = pool->steal();
 
             back_element = back_block->begin();
-            *back_element = val;
+            *back_element = std::forward<V>(val);
             ++m_size;
             return;
         }
         ++back_element;
-        *back_element = val;
+        *back_element = std::forward<V>(val);
         ++m_size;
     }
+public:
 
     //! Removes element from the queue.
     void pop()

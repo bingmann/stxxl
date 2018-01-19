@@ -242,10 +242,34 @@ public:
     {
         return impl.insert(x);
     }
-    iterator insert(iterator pos, const value_type& x)
+
+    std::pair<iterator, bool> insert(value_type&& value)
+    {
+        return impl.insert(std::forward<value_type>(value));
+    }
+
+    void insert(std::initializer_list<value_type> ilist)
+    {
+        return impl.insert(std::move(ilist));
+    }
+
+    template <class... Args>
+    std::pair<iterator, bool> emplace(Args&&... args)
+    {
+        return impl.emplace(std::forward<Args>(args)...);
+    }
+
+    iterator insert(const_iterator pos, const value_type& x)
     {
         return impl.insert(pos, x);
     }
+
+    template <class... Args>
+    iterator emplace_hint(iterator hint, Args&&... args)
+    {
+        return impl.emplace_hint(hint, std::forward<Args>(args)...);
+    }
+
     template <class InputIterator>
     void insert(InputIterator b, InputIterator e)
     {
@@ -308,6 +332,27 @@ public:
     std::pair<const_iterator, const_iterator> equal_range(const key_type& k) const
     {
         return impl.equal_range(k);
+    }
+
+    //! \}
+
+    //! \name Element access
+    //! \{
+
+    //! Returns a reference to the mapped value of the element with
+    //! key equivalent to key. If no such element exists, an exception
+    //! of type std::out_of_range is thrown.
+    data_type& at(const key_type& k)
+    {
+        return impl.at(k);
+    }
+
+    //! Returns a reference to the mapped value of the element with
+    //! key equivalent to key. If no such element exists, an exception
+    //! of type std::out_of_range is thrown.
+    const data_type& at(const key_type& k) const
+    {
+        return impl.at(k);
     }
 
     //! \}

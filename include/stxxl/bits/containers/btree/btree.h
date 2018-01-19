@@ -509,6 +509,32 @@ public:
 
     std::pair<iterator, bool> insert(const value_type& x)
     {
+        return insert_impl(x);
+    }
+
+    std::pair<iterator, bool> insert(value_type&& x)
+    {
+        return insert_impl(std::forward<value_type>(x));
+    }
+
+    void insert(std::initializer_list<value_type> ilist)
+    {
+        for (auto&& val : ilist)
+        {
+            insert_impl(std::forward<decltype(val)>(val));
+        }
+    }
+
+    template <class... Args>
+    std::pair<iterator, bool> emplace(Args&&... args)
+    {
+        return insert_impl(value_type(std::forward<Args>(args)...));
+    }
+
+private:
+    template <typename V>
+    std::pair<iterator, bool> insert_impl(V&& x)
+    {
         root_node_iterator_type it = m_root_node.lower_bound(x.first);
         assert(!m_root_node.empty());
         assert(it != m_root_node.end());
@@ -519,7 +545,7 @@ public:
             leaf_type* leaf = m_leaf_cache.get_node(static_cast<leaf_bid_type>(it->second), true);
             assert(leaf);
             std::pair<key_type, leaf_bid_type> splitter;
-            std::pair<iterator, bool> result = leaf->insert(x, splitter);
+            std::pair<iterator, bool> result = leaf->insert(std::forward<V>(x), splitter);
             if (result.second)
                 ++m_size;
 
@@ -544,7 +570,7 @@ public:
         node_type* node = m_node_cache.get_node(static_cast<node_bid_type>(it->second), true);
         assert(node);
         std::pair<key_type, node_bid_type> splitter;
-        std::pair<iterator, bool> result = node->insert(x, m_height - 1, splitter);
+        std::pair<iterator, bool> result = node->insert(std::forward<V>(x), m_height - 1, splitter);
         if (result.second)
             ++m_size;
 
@@ -565,6 +591,7 @@ public:
         return result;
     }
 
+public:
     iterator begin()
     {
         root_node_iterator_type it = m_root_node.begin();
@@ -633,6 +660,36 @@ public:
     data_type& operator [] (const key_type& k)
     {
         return (*((insert(value_type(k, data_type()))).first)).second;
+    }
+
+    //! Returns a reference to the mapped value of the element with
+    //! key equivalent to key. If no such element exists, an exception
+    //! of type std::out_of_range is thrown.
+    data_type& at(const key_type& k)
+    {
+        iterator it = find(k);
+
+        if (UNLIKELY(it == end()))
+        {
+            throw std::out_of_range("stxxl::btree");
+        }
+
+        return it->second;
+    }
+
+    //! Returns a reference to the mapped value of the element with
+    //! key equivalent to key. If no such element exists, an exception
+    //! of type std::out_of_range is thrown.
+    const data_type& at(const key_type& k) const
+    {
+        const_iterator it = find(k);
+
+        if (UNLIKELY(it == end()))
+        {
+            throw std::out_of_range("stxxl::btree");
+        }
+
+        return it->second;
     }
 
     iterator find(const key_type& k)
@@ -948,10 +1005,16 @@ public:
         assert(size() == old_size - 1);
     }
 
-    iterator insert(iterator /*pos*/, const value_type& x)
+    iterator insert(const_iterator /*pos*/, const value_type& x)
     {
         // pos ignored in the current version
         return insert(x).first;
+    }
+
+    template <class... Args>
+    iterator emplace_hint(iterator hint, Args&&... args)
+    {
+        return insert(hint, value_type(std::forward<Args>(args)...));
     }
 
     void clear()

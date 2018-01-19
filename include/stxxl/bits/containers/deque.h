@@ -481,6 +481,22 @@ public:
     //! non-copyable: delete assignment operator
     deque& operator = (const deque&) = delete;
 
+    //! move-constructor
+    deque(deque&& o) noexcept : deque() {
+        swap(o);
+    }
+
+    //! move assignment operator
+    deque& operator = (deque&& obj) noexcept
+    {
+        if (&obj != this)
+        {
+            deque tmp(std::forward<deque>(obj));
+            this->swap(tmp);
+        }
+        return *this;
+    }
+
     ~deque()      // empty so far
     { }
 
@@ -618,6 +634,20 @@ public:
         ++m_size;
     }
 
+    template<class... Args>
+    void emplace_front(Args&&... args)
+    {
+        if ((m_begin + m_vector.size() - 1) % m_vector.size() == m_end)
+        {
+            // an overflow will occur: resize the array
+            double_array();
+        }
+
+        m_begin = (m_begin + m_vector.size() - 1) % m_vector.size();
+        m_vector[m_begin] = value_type(std::forward<Args>(args)...);
+        ++m_size;
+    }
+
     void push_back(const value_type& el)
     {
         if ((m_end + 1) % m_vector.size() == m_begin)
@@ -626,6 +656,19 @@ public:
             double_array();
         }
         m_vector[m_end] = el;
+        m_end = (m_end + 1) % m_vector.size();
+        ++m_size;
+    }
+
+    template<class... Args>
+    void emplace_back(Args&&... args)
+    {
+        if ((m_end + 1) % m_vector.size() == m_begin)
+        {
+            // an overflow will occur: resize the array
+            double_array();
+        }
+        m_vector[m_end] = value_type(std::forward<Args>(args)...);
         m_end = (m_end + 1) % m_vector.size();
         ++m_size;
     }

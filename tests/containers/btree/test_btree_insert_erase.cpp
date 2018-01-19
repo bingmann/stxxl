@@ -16,22 +16,14 @@
 #include <tlx/die.hpp>
 #include <tlx/logger.hpp>
 
+#include <stxxl/bits/common/comparator.h>
 #include <stxxl/bits/containers/btree/btree.h>
 #include <stxxl/random_shuffle>
 #include <stxxl/scan>
 #include <stxxl/sort>
+#include <tlx/die.hpp>
 
-struct comp_type : public std::less<int>
-{
-    static int max_value()
-    {
-        return std::numeric_limits<int>::max();
-    }
-    static int min_value()
-    {
-        return std::numeric_limits<int>::min();
-    }
-};
+using comp_type = stxxl::comparator<int>;
 using btree_type = stxxl::btree::btree<
           int, double, comp_type, 4096, 4096, foxxll::simple_random>;
 //using btree_type =  stxxl::btree::btree<int,double,comp_type,10,11,foxxll::simple_random> ;
@@ -83,7 +75,7 @@ int main(int argc, char* argv[])
     LOG1 << "Sorting the random values";
     stxxl::sort(Values.begin(), Values.end(), comp_type(), 128 * 1024 * 1024);
 
-    LOG1 << "Deleting unique values";
+    LOG1 << "Making values unique";
     stxxl::vector<int>::iterator NewEnd = std::unique(Values.begin(), Values.end());
     Values.resize(NewEnd - Values.begin());
 
@@ -92,8 +84,20 @@ int main(int argc, char* argv[])
 
     stxxl::vector<int>::const_iterator it = Values.begin();
     LOG1 << "Inserting " << Values.size() << " random values into btree";
+    bool use_emplace = false;
     for ( ; it != Values.end(); ++it)
-        BTree.insert(std::pair<int, double>(*it, double(*it) + 1.0));
+    {
+        if (use_emplace)
+        {
+            BTree.emplace(*it, static_cast<double>(*it) + 1.0);
+        }
+        else
+        {
+            BTree.insert(std::pair<int, double>(*it, static_cast<double>(*it) + 1.0));
+        }
+
+        use_emplace = !use_emplace;
+    }
 
     LOG1 << "Number of elements in btree: " << BTree.size();
 
@@ -104,6 +108,8 @@ int main(int argc, char* argv[])
     {
         btree_type::iterator bIt = BTree.find(*vIt);
         die_unless(bIt != BTree.end());
+        // check at() finds it, too
+        die_unless(BTree.at(*vIt) == bIt->second);
         // erasing non-existent element
         die_unless(BTree.erase((*vIt) + 1) == 0);
         // erasing existing element
@@ -112,6 +118,8 @@ int main(int argc, char* argv[])
         die_unless(BTree.find(*vIt) == BTree.end());
         // trying to erase it again
         die_unless(BTree.erase(*vIt) == 0);
+        // checking at() throws for non-existing element
+        die_unless_throws(BTree.at(*vIt), std::out_of_range);
     }
 
     die_unless(BTree.empty());

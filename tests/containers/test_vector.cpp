@@ -169,10 +169,26 @@ void test_resize_shrink()
     vector.flush();
 }
 
+//! check vector::emplace_back()
+void test_emplace_back()
+{
+    using vector_type = stxxl::vector<std::tuple<int, double>, 2, stxxl::lru_pager<4>, 4096>;
+    vector_type vector;
+
+    int n = 1 << 14;
+
+    for (size_t i = 0; i < n; ++i) {
+        vector.emplace_back(10, 0.2);
+    }
+
+    vector.flush();
+}
+
 int main()
 {
     test_vector1();
     test_resize_shrink();
+    test_emplace_back();
 
     return 0;
 }

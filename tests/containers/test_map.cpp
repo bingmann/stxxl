@@ -17,22 +17,12 @@
 #include <tlx/die.hpp>
 #include <tlx/logger.hpp>
 
+#include <stxxl/bits/common/comparator.h>
 #include <stxxl/map>
 
 using key_type = unsigned int;
 using data_type = unsigned int;
-
-struct cmp : public std::less<key_type>
-{
-    key_type min_value()
-    {
-        return std::numeric_limits<key_type>::min();
-    }
-    key_type max_value()
-    {
-        return std::numeric_limits<key_type>::max();
-    }
-};
+using cmp = stxxl::comparator<key_type>;
 
 #define BLOCK_SIZE (32 * 1024)
 #define CACHE_SIZE (2 * 1024 * 1024 / BLOCK_SIZE)

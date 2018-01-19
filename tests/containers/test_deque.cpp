@@ -33,13 +33,17 @@ int main(int argc, char* argv[])
     stxxl::deque<int>::const_iterator b = Deque.begin();
     stxxl::deque<int>::const_iterator e = Deque.end();
     die_unless(b == e);
-    Deque.push_front(1);
-    Deque.push_front(2);
+    Deque.emplace_front(4);
     Deque.push_front(3);
+    Deque.push_front(2);
+    Deque.push_front(1);
     b = Deque.begin();
     die_unless(b != e);
     Deque.push_back(5);
+    Deque.emplace_back(6);
     std::copy(Deque.begin(), Deque.end(), std::ostream_iterator<int>(std::cout, " "));
+    die_unless(stxxl::is_sorted(Deque.begin(), Deque.end()));
+    die_unless(Deque.size() == 6);
 
     stxxl::random_number32 rand;
     stxxl::deque<int> XXLDeque;

@@ -46,8 +46,10 @@ using xxl_map_type = stxxl::map<key_type, data_type, cmp2,
 #define PERCENT_ERASE_BULK 9
 #define PERCENT_ERASE_KEY 90
 #define PERCENT_ERASE_ITERATOR 100
-#define PERCENT_INSERT_PAIR 100
-#define PERCENT_INSERT_BULK 100
+#define PERCENT_INSERT_PAIR 50
+#define PERCENT_EMPLACE 50
+#define PERCENT_EMPLACE_HINT 50
+#define PERCENT_INSERT_BULK 50
 #define PERCENT_SIZING 100
 #define PERCENT_LOWER 100
 #define PERCENT_UPPER 200
@@ -83,6 +85,8 @@ int main(int argc, char* argv[])
              PERCENT_ERASE_KEY +
              PERCENT_ERASE_ITERATOR +
              PERCENT_INSERT_PAIR +
+             PERCENT_EMPLACE +
+             PERCENT_EMPLACE_HINT +
              PERCENT_INSERT_BULK +
              PERCENT_LOWER +
              PERCENT_UPPER +
@@ -211,6 +215,30 @@ int main(int argc, char* argv[])
             die_unless(stxxl::there(xxlmap, key, 2 * key));
         }
         // *********************************************************
+        // The emplace function will be called
+        // *********************************************************
+        else if (step < (percent += PERCENT_EMPLACE))
+        {
+            key_type key = rand() % MAX_KEY;
+            stdmap.emplace(key, 2*key);
+            xxlmap.emplace(key, 2*key);
+
+            die_unless(stxxl::there(stdmap, key, 2*key));
+            die_unless(stxxl::there(xxlmap, key, 2*key));
+        }
+        // *********************************************************
+        // The emplace_hint function will be called
+        // *********************************************************
+        else if (step < (percent += PERCENT_EMPLACE_HINT))
+        {
+            key_type key = rand() % MAX_KEY;
+            stdmap.emplace_hint(stdmap.upper_bound(key), key, 2*key);
+            xxlmap.emplace_hint(xxlmap.upper_bound(key), key, 2*key);
+
+            die_unless(stxxl::there(stdmap, key, 2*key));
+            die_unless(stxxl::there(xxlmap, key, 2*key));
+        }
+        // *********************************************************
         // The bulk insert function will be called
         // *********************************************************
         else if (step < (percent += PERCENT_INSERT_BULK))
@@ -230,11 +258,11 @@ int main(int argc, char* argv[])
             stdmap.insert(v2.begin(), v2.end());
             xxlmap.insert(v2.begin(), v2.end());
 
-            for (unsigned i = lower; i < upper; i++)
-                die_unless(stxxl::there(stdmap, i, 2 * i));
+            for (unsigned j = lower; j < upper; j++)
+                die_unless(stxxl::there(stdmap, j, 2 * j));
 
-            for (unsigned i = lower; i < upper; i++)
-                die_unless(stxxl::there(xxlmap, i, 2 * i));
+            for (unsigned j = lower; j < upper; j++)
+                die_unless(stxxl::there(xxlmap, j, 2 * j));
         }
         // *********************************************************
         // The lower_bound function will be called
@@ -287,7 +315,7 @@ int main(int argc, char* argv[])
             }
         }
         // *********************************************************
-        // The find function will be called
+        // The find and at function will be called
         // *********************************************************
         else if (step < (percent += PERCENT_FIND))
         {
@@ -306,6 +334,11 @@ int main(int argc, char* argv[])
                 die_unless(stxxl::is_end(stdmap, stditer) == stxxl::is_end(xxlmap, xxliter));
                 if (!stxxl::is_end(stdmap, stditer)) {
                     die_unless(stxxl::is_same(*(stditer), *(xxliter)));
+                    die_unless(stdmap.at(key1) == xxlmap.at(key1));
+                } else
+                {
+                    die_unless_throws(stdmap.at(key1), std::out_of_range);
+                    die_unless_throws(xxlmap.at(key1), std::out_of_range);
                 }
 
                 key1++;
