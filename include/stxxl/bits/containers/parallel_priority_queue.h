@@ -2769,10 +2769,15 @@ public:
             for (long p = 0; p < static_cast<long>(m_num_insertion_heaps); ++p)
             {
                 // reestablish heap property: siftUp only those items pushed
-                for (size_t index = m_proc[p]->heap_add_size; index != 0; ) {
-                    std::push_heap(m_proc[p]->insertion_heap.begin(),
-                                   m_proc[p]->insertion_heap.end() - (--index),
-                                   m_compare);
+                // if few items were pushed. Otherwise, rebuild the heap.
+                if (m_proc[p]->heap_add_size*2 < m_proc[p]->insertion_heap.size()) {
+                    for (size_t index = m_proc[p]->heap_add_size; index != 0; ) {
+                        std::push_heap(m_proc[p]->insertion_heap.begin(),
+                                       m_proc[p]->insertion_heap.end() - (--index),
+                                       m_compare);
+                    }
+                } else {
+                    std::make_heap(m_proc[p]->insertion_heap.begin(), m_proc[p]->insertion_heap.end(), m_compare);
                 }
 
 #if STXXL_PARALLEL
